@@ -10,10 +10,15 @@ class Gro
 		std::string currentline;
 		std::ifstream g;
 		
+		char** data;
+		
 		void dettitle(); // find title
 		
 	public:
 		Gro(const char* fn);
+		~Gro();
+		
+		char** getdata(int start, int end, const char* dat);
 		
 		int getresnum(); 	// return residue number
 		char* getresname();	// return residue name
@@ -26,10 +31,11 @@ class Gro
 		double getvy();		// return x velocity of current atom
 		double getvz();		// return x velocity of current atom
 		std::string getcline(); 	// return currentline
+		void getnline();		// basically getline
 		int getnatoms();	// return numatoms
 		bool fail(); 		// return fail
 		
-		bool seekatom(int n);	// seek to specified atom number, return true if fail
+		int seekatom(int n);	// seek to specified atom number, return -1 if fail
 
 };
 
