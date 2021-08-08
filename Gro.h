@@ -7,9 +7,10 @@ class Gro
 		int numatoms;
 		int titlesize;
 		int linesize;
+		int datasize;
 		std::string currentline;
 		std::ifstream g;
-		
+		char* buf;
 		char** data;
 		
 		void dettitle(); // find title

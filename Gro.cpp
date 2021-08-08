@@ -1,4 +1,5 @@
 #include "Gro.h"
+#include <iostream>
 #include <string.h>
 
 Gro::Gro(const char* fn)
@@ -6,6 +7,7 @@ Gro::Gro(const char* fn)
 	g.open(fn);
 	
 	data = nullptr;
+	buf = nullptr;
 	
 	titlesize = 0;
 	linesize = 0;
@@ -16,26 +18,42 @@ Gro::Gro(const char* fn)
 
 Gro::~Gro()
 {
-	if (data != nullptr)
+	if (data)
 	{
-		for (size_t i = 0; i < sizeof(data); i++)
+		for (int i = 0; i < datasize; i++)
 			delete [] data[i];
 		delete [] data;
+	}
+	
+	if (buf)
+	{
+		delete [] buf;
 	}
 }
 
 char** Gro::getdata(int start, int end, const char* dat)
 {
-	int pos;
-	int len;
-	if (data != nullptr)
+	if (data)
 	{
-		for (size_t i = 0; i < sizeof(data); i++)
-			delete [] &data[i];
+		for (int i = 0; i < datasize; i++)
+			delete [] data[i];
 		delete [] data;
 	}
+	
+	if (buf)
+	{
+		delete [] buf;
+	}
+	
+	int pos;
+	int len;
+	int offset;
+	datasize = end - start + 1;
+	buf = new char[datasize*linesize];
 		
 	g.seekg(((start-1) * linesize) + titlesize, g.beg);
+	
+	g.read(buf, datasize*linesize);
 	
 	if (strcmp(dat, "rnum") == 0)
 	{
@@ -88,19 +106,28 @@ char** Gro::getdata(int start, int end, const char* dat)
 		len = 8; 
 	}
 	
-	data = new char*[end - start];
+	//std::cout << "After string compares\n";
+	std::cout << "pos = " << pos << '\n' << "len = " << len << '\n';
 	
-	for (int i = 0; i < end - start; i++)
+	data = new char*[datasize];
+	
+	for (int i = 0; i < datasize; i++)
 	{
 		data[i] = new char[len+1];
 	}
 	
-	for (int i = 0; i < end; i++)
+	
+	
+	for (int i = 0; i < datasize; i++)
 	{
-		getline(g, currentline);
-		memcpy(data, &currentline[pos], len);
+		offset = i*linesize + pos;
+		memcpy(data[i], &buf[offset], len);
 		data[i][len] = '\0';
+		
+		//std::cout << "copy #" << i << ": " << data[i] << '\n';
 	}
+	
+	//std::cout << "After data transfer\n";
 	
 	return data;
 }
