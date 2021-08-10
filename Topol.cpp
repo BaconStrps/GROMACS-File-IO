@@ -60,14 +60,15 @@ void Topol::searchTopol()
 			getline(t, include);
 		}
 	}
-	
+	// somewhere here you need to initialize the itp struct member nmolc (number molecules)
 	delete [] buf;
 }
 
 
-itp Topol::searchITP(const char* fn)
+itp Topol::searchITP(const char* fn) //to do: write this function, initialize itp structs.
 {
 	ifstream i(fn);
+	string prev, c;
 	
 	i.seekg(0, t.end);
 	size = i.tellg();
@@ -75,6 +76,8 @@ itp Topol::searchITP(const char* fn)
 	char* buf = new char[size];
 	i.seekg(0, t.beg);
 	i.read(buf, size);
+	prev.assign(strstr(buf, ))
+	
 }
 
 
