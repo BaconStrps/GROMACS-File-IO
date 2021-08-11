@@ -4,7 +4,7 @@
 
 Gro::Gro(const char* fn)
 {
-	g.open(fn);
+	g.open(fn, std::ios_base::binary);
 	
 	data = nullptr;
 	buf = nullptr;
@@ -29,6 +29,8 @@ Gro::~Gro()
 	{
 		delete [] buf;
 	}
+	
+	g.close();
 }
 
 char** Gro::getdata(int start, int end, const char* dat)
@@ -54,6 +56,13 @@ char** Gro::getdata(int start, int end, const char* dat)
 	g.seekg(((start-1) * linesize) + titlesize, g.beg);
 	
 	g.read(buf, datasize*linesize);
+	
+	if (g.gcount() != datasize*linesize) // safety just in case datasize would lead us past the end of file.
+	{
+		std::cout << "datasize before: " << datasize;
+		datasize = g.gcount()/linesize;
+		std::cout << "datasize after: " << datasize;
+	}
 	
 	if (strcmp(dat, "rnum") == 0)
 	{
@@ -106,8 +115,6 @@ char** Gro::getdata(int start, int end, const char* dat)
 		len = 8; 
 	}
 	
-	//std::cout << "After string compares\n";
-	std::cout << "pos = " << pos << '\n' << "len = " << len << '\n';
 	
 	data = new char*[datasize];
 	
@@ -124,10 +131,8 @@ char** Gro::getdata(int start, int end, const char* dat)
 		memcpy(data[i], &buf[offset], len);
 		data[i][len] = '\0';
 		
-		//std::cout << "copy #" << i << ": " << data[i] << '\n';
 	}
 	
-	//std::cout << "After data transfer\n";
 	
 	return data;
 }
@@ -152,112 +157,7 @@ void Gro::dettitle()
 	
 }
 
-int Gro::seekatom(int n)
-{
-	if (g.fail() || n > numatoms)
-		return -1;
-	else
-	{
-		g.seekg(((n-1) * linesize) + titlesize, g.beg);
-		getline(g, currentline);
-		return 0;
-	}
-	
-}
-
-std::string Gro::getcline()
-{
-	return currentline;
-}
-
-int Gro::getnatoms()
-{
-	return numatoms;
-}
-
 bool Gro::fail()
 {
 	return fflag;
-}
-int Gro::getresnum()
-{
-	return atoi(currentline.substr(0,5).c_str());
-}
-char* Gro::getresname()
-{
-	char* s = nullptr;
-	memcpy(s, &currentline[5], 5);
-	s[5] = '\0';
-	
-	return s;
-}
-char* Gro::getatomname()
-{
-	char* s = nullptr;
-	memcpy(s, &currentline[10], 5);
-	s[5] = '\0';
-	
-	return s;
-}
-int Gro::getatomnum()
-{
-	char s[6];
-	memcpy(s, &currentline[15], 5);
-	s[5] = '\0';
-	return atoi(s);
-	
-}
-double Gro::getx()
-{
-	char s[9];
-	memcpy(s, &currentline[20], 8);
-	s[8] = '\0';
-	return atof(s);
-}
-double Gro::gety()
-{
-	char s[9];
-	memcpy(s, &currentline[28], 8);
-	s[8] = '\0';
-	return atof(s);
-}
-double Gro::getz()
-{
-	char s[9];
-	memcpy(s, &currentline[36], 8);
-	s[8] = '\0';
-	return atof(s);
-}
-double Gro::getvx()
-{
-	if (currentline.length() < 36)
-	{
-		return 0; // no velocities to check
-	}
-	char s[9];
-	memcpy(s, &currentline[44], 8);
-	s[8] = '\0';
-	return atof(s);
-}
-double Gro::getvy()
-{
-	if (currentline.length() < 36)
-	{
-		return 0; // no velocities to check
-	}
-	char s[9];
-	memcpy(s, &currentline[52], 8);
-	s[8] = '\0';
-	return atof(s);
-}
-double Gro::getvz()
-{
-	if (currentline.length() < 36)
-	{
-		return 0; // no velocities to check
-	}
-	char s[9];
-	memcpy(s, &currentline[60], 8);
-	s[8] = '\0';
-	return atof(s);
 }
