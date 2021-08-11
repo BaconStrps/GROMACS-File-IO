@@ -35,19 +35,17 @@ void Index::initIndex()
 	int size; 
 	int headpos[128]; // id be surprised if someone had more than 128 unique groups
 	char* buf;
-	
 	index.seekg(0, index.end);
 	size = index.tellg();
+	// Doesn't need to be null terminated we'll read as if it was a file and split it accordingly.
 	buf = new char[size]; 
 	
 	index.seekg(0, index.beg);
-	
 	if (index.fail())
 	{
 		f = true;
 		return;
 	}
-	
 	index.read(buf, size);
 	
 	for (int i = 0; i < size; i++)
@@ -79,8 +77,6 @@ Index::group Index::readGroup(char* hline)
 	memcpy(temp.grname, hline+1, n);
 	temp.grname[n] = '\0';
 	
-	// start
-	
 	for (int i = n;;i++)
 	{
 		if (isalnum(hline[i]))
@@ -89,21 +85,20 @@ Index::group Index::readGroup(char* hline)
 			{
 				if (!isalnum(hline[i+j]))
 				{
+					c = hline[i+j];
 					hline[i+j] = '\0';
 					temp.start = atoi(&hline[i]);
+					hline[i+j] = c;
 					break;
 				}
 			}
-			n += i;
 			break;
 		}
 	}
 	
-	// end
-	
 	for (int i = n;;i++)
 	{
-		if (hline[i] == 0) // E O F
+		if (hline[i] == 0)
 		{
 			for (int j = 0;;j++)
 			{
