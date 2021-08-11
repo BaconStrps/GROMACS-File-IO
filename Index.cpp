@@ -5,6 +5,8 @@ Index::Index(const char* fn)
 {
 	index.open(fn, std::ios_base::binary);
 	
+	f = false;
+	
 	if (index.fail())
 	{
 		f = true;
@@ -18,6 +20,7 @@ Index::Index(const char* fn)
 
 Index::~Index()
 {	
+	index.close();
 	for (int i = 0; i < groupnum; i++)
 	{
 		delete [] grs[i].grname;
@@ -54,8 +57,6 @@ void Index::initIndex()
 			}
 	}
 	
-	std::cout << groupnum << '\n';
-	
 	grs = new group[groupnum];
 	
 	for (int i = 0; i < groupnum; i++)
@@ -72,7 +73,6 @@ Index::group Index::readGroup(char* hline)
 	group temp;
 	char c;
 	int n = strstr(hline, "]") - hline - 1;
-	std::cout << n << '\n';
 	temp.grname = new char[n+1];
 	memcpy(temp.grname, hline+1, n);
 	temp.grname[n] = '\0';
