@@ -1,22 +1,37 @@
 #include "Topol.h"
-#include <
+#include <iostream>
+#include <string.h>
 
 Topol::Topol(const char* fn)
 {
-	t.open(fn);
+	t.open(fn, std::ios_base::binary);
+	f = false;
 	if (t.fail())
 		f = true;
-		
-	nres = 0;
 	
+	ff = nullptr;
+	nres = 0;
+	rescount = 1;
 	searchTopol();
 }
 
+Topol::~Topol()
+{
+	if (ff)
+	{
+		for (int i = 0; i < rescount; i++)
+		{
+			delete [] ff[i].resname;
+		}
+		delete [] ff;
+	}
+}
 
 void Topol::searchTopol()
 {
-	size_t size, molpos, incpos;
-	string molecules, include;
+	int size, molpos;
+	int linesize = 0;
+	int resindex = 0;
 	t.seekg(0, t.end);
 	size = t.tellg();
 	
@@ -26,62 +41,122 @@ void Topol::searchTopol()
 	
 	char* temp = strstr(buf, "[ molecules ]");
 	molpos = temp - buf;
-
-	molecules.assign(temp, (strstr(temp, "\n") - temp));
 	
-	temp = strstr(buf, "#include");
-	incpos = temp - buf;
-	
-	include.assign(temp, (strstr(temp, "\n") - temp));
-	
-	t.seekg(molpos, t.beg);
-	
-	
-	while (1)
+	for (int i = molpos+14;;i++)
 	{
-		getline(t, molecules);
-		if (molecules.compare("") != -1)
-			nres++;
-		else
-			break;
-	}
-	
-	ff = new itp[nres];
-	
-	t.seekg(incpos, t.beg);
-	
-	for (int i = 0;;i++)
-	{
-		if (include[0] != '#')
-			break;
-		else
+		if (buf[i] == ';')
 		{
-			ff[i] = searchITP(include.substr(10, include.length()-11).c_str())
-			getline(t, include);
+			for (int j = 0;;j++)
+			{
+				if (buf[i+j] == '\n')
+				{
+					i+=j+1;
+					break;
+				}
+			}
+		}
+		if (buf[i] == '\n' && buf[i] != 0)
+		{
+			rescount++;
+		}
+		if (buf[i] == '[' || buf[i] == 0)
+		{
+			break;
 		}
 	}
-	// somewhere here you need to initialize the itp struct member nmolc (number molecules)
+	
+	
+	ff = new residue[rescount];
+	
+	
+	for (int i = molpos + 14;;i++)
+	{
+		if (buf[i] == ';')
+		{
+			for (int j = 0;;j++)
+			{
+				if (buf[i+j] == '\n')
+				{
+					i+=j+1;
+					break;
+				}
+			}
+		}
+		
+		if (i >= size || buf[i] == '\0')
+		{
+			break;
+		}
+		
+		if (isalnum(buf[i]))
+		{
+			ff[resindex++] = checkResidue(&buf[i]);
+			for (int j = 0;;j++)
+			{
+				if (buf[i+j] == '\n' || i+j > size)
+				{
+					i+=j;
+					break;
+				}
+			}
+		}
+		if (buf[i] == '[' || buf[i] == 0 || i > size)
+		{
+			break;
+		}
+		if (i > t.gcount())
+		{
+			break;
+		}
+	}
+	
+	
 	delete [] buf;
 }
 
-
-itp Topol::searchITP(const char* fn) //to do: write this function, initialize itp structs.
+Topol::residue Topol::checkResidue(char* buf)
 {
-	ifstream i(fn);
-	string prev, c;
-	
-	i.seekg(0, t.end);
-	size = i.tellg();
-	
-	char* buf = new char[size];
-	i.seekg(0, t.beg);
-	i.read(buf, size);
-	prev.assign(strstr(buf, ))
-	
+	char c;
+	residue temp;
+	for (int i = 1;;i++)
+	{
+		if (buf[i] == '\n' || buf[i] == 0)
+		{
+			for (int j = 1;;j++)
+			{
+				if (isspace(buf[i-j])) // find the start of the molecule count
+				{
+					c = buf[i];
+					buf[i] = '\0';
+					temp.nmolc = atoi(&buf[i-j]);
+					buf[i] = c;
+					break;
+				}
+			}
+			break;
+		}
+	}
+	for (int j = 0;;j++)
+	{
+		if (isspace(buf[j])) // find the end of the residue name
+		{
+			temp.resname = new char[(&buf[j]-(buf)+1)];
+			memcpy(temp.resname, buf, (&buf[j]-(buf)));
+			temp.resname[&buf[j]-buf] == '\0';
+			break;
+		}
+	}
+
+return temp;
 }
 
+Topol::residue* Topol::getResidues(int& size)
+{
+	size = rescount;
+	return ff; 
+}
 
-Topol::fail()
+bool Topol::fail()
 {
 	return f;
 }

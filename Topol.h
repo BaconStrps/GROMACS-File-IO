@@ -1,30 +1,30 @@
 #include <fstream>
 
 class Topol
-{
-	private:
-		struct itp
-		{
-			char* resname;
-			char* fn;
-			int natoms;
-			int nmolc;
-			int index[2]; //start, end
-		};
-		
-		itp* ff;
-		bool f();
-		
-		int nres;
-		ifstream t;
-		
+{	
 		
 	public:
 		
+		struct residue
+		{
+			char* resname;	//name of residue
+			int nmolc;		//molcules per residue
+		};
+		
 		Topol(const char* fn);
+		~Topol();
 		
 		void searchTopol();
-		itp searchITP(const char* fn);
 		bool fail();
+		residue* getResidues(int& size);
+		
+	private:
+		residue checkResidue(char* buf);
+		int rescount;
+		residue* ff;
+		bool f;
+		
+		int nres;
+		std::ifstream t;
 		
 };
