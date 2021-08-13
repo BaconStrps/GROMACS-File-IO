@@ -10,8 +10,7 @@ Topol::Topol(const char* fn)
 		f = true;
 	
 	ff = nullptr;
-	nres = 0;
-	rescount = 1;
+	rescount = 0;
 	searchTopol();
 }
 
@@ -29,24 +28,26 @@ Topol::~Topol()
 
 void Topol::searchTopol()
 {
-	int size, molpos;
+	size_t size = 0, molpos = 0;
 	int linesize = 0;
 	int resindex = 0;
 	t.seekg(0, t.end);
 	size = t.tellg();
+	size++;
 	
 	char* buf = new char[size];
 	t.seekg(0, t.beg);
 	t.read(buf, size);
+	buf[size-1] = '\0';
 	
 	char* temp = strstr(buf, "[ molecules ]");
 	molpos = temp - buf;
 	
-	for (int i = molpos+14;;i++)
+	for (int i = molpos+14; i < size ;i++)
 	{
 		if (buf[i] == ';')
 		{
-			for (int j = 0;;j++)
+			for (int j = 0; j < size - i ;j++)
 			{
 				if (buf[i+j] == '\n')
 				{
@@ -69,11 +70,11 @@ void Topol::searchTopol()
 	ff = new residue[rescount];
 	
 	
-	for (int i = molpos + 14;;i++)
+	for (int i = molpos + 14; i < size ;i++)
 	{
 		if (buf[i] == ';')
 		{
-			for (int j = 0;;j++)
+			for (int j = 0; j < size - i;j++)
 			{
 				if (buf[i+j] == '\n')
 				{
@@ -82,43 +83,34 @@ void Topol::searchTopol()
 				}
 			}
 		}
-		
-		if (i >= size || buf[i] == '\0')
-		{
-			break;
-		}
-		
+
 		if (isalnum(buf[i]))
 		{
-			ff[resindex++] = checkResidue(&buf[i]);
-			for (int j = 0;;j++)
+			ff[resindex++] = checkResidue(&buf[i], size - i);
+			for (int j = 0; j < size - i ; j++)
 			{
-				if (buf[i+j] == '\n' || i+j > size)
+				if (buf[i+j] == '\n' || j+1 == size - i)
 				{
 					i+=j;
 					break;
 				}
 			}
 		}
-		if (buf[i] == '[' || buf[i] == 0 || i > size)
-		{
-			break;
-		}
-		if (i > t.gcount())
+		if (buf[i] == '[')
 		{
 			break;
 		}
 	}
 	
-	
 	delete [] buf;
 }
 
-Topol::residue Topol::checkResidue(char* buf)
+Topol::residue Topol::checkResidue(char* buf, int size)
 {
 	char c;
+	size_t strl;
 	residue temp;
-	for (int i = 1;;i++)
+	for (int i = 1; i < size ;i++)
 	{
 		if (buf[i] == '\n' || buf[i] == 0)
 		{
@@ -126,9 +118,11 @@ Topol::residue Topol::checkResidue(char* buf)
 			{
 				if (isspace(buf[i-j])) // find the start of the molecule count
 				{
+					std::cout << "molecule count: " << buf[i-j+1] << '\n';
 					c = buf[i];
 					buf[i] = '\0';
 					temp.nmolc = atoi(&buf[i-j]);
+					std::cout << temp.nmolc << '\n';
 					buf[i] = c;
 					break;
 				}
@@ -136,18 +130,19 @@ Topol::residue Topol::checkResidue(char* buf)
 			break;
 		}
 	}
-	for (int j = 0;;j++)
+	for (int i = 0; i < size; i++)
 	{
-		if (isspace(buf[j])) // find the end of the residue name
+		if (isspace(buf[i])) // find the end of the residue name
 		{
-			temp.resname = new char[(&buf[j]-(buf)+1)];
-			memcpy(temp.resname, buf, (&buf[j]-(buf)));
-			temp.resname[&buf[j]-buf] == '\0';
+			strl = &buf[i]-buf;
+			temp.resname = new char[strl+1];
+			memcpy(temp.resname, buf, strl);
+			temp.resname[strl] == '\0';
 			break;
 		}
 	}
-
-return temp;
+	
+	return temp;
 }
 
 Topol::residue* Topol::getResidues(int& size)

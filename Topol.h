@@ -19,12 +19,10 @@ class Topol
 		residue* getResidues(int& size);
 		
 	private:
-		residue checkResidue(char* buf);
+		residue checkResidue(char* buf, int size);
 		int rescount;
 		residue* ff;
 		bool f;
-		
-		int nres;
 		std::ifstream t;
 		
 };
