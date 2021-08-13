@@ -37,8 +37,7 @@ void Index::initIndex()
 	char* buf;
 	index.seekg(0, index.end);
 	size = index.tellg();
-	// Doesn't need to be null terminated we'll read as if it was a file and split it accordingly.
-	buf = new char[size]; 
+	buf = new char[size+1]; 
 	
 	index.seekg(0, index.beg);
 	if (index.fail())
@@ -47,6 +46,8 @@ void Index::initIndex()
 		return;
 	}
 	index.read(buf, size);
+	
+	buf[size] = '\0';
 	
 	for (int i = 0; i < size; i++)
 	{
