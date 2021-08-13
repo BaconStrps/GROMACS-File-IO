@@ -1,7 +1,9 @@
 # GROMACS-File-IO
 A GROMACS file IO library intended for quick, reliable, and safe reading of GROMACS files directly.
 
-Currently only .gro files are supported but I will be updating this with new additions for each file.
+Currently only .gro files are supported but I will be updating this with new additions for each file.  
+
+To use: Run genlib.sh (assumes you have GCC installed), then link the outputted libgfile.a file with whatever you are compiling. Be sure to include all header files inside of your source directoy and include gfile.h inside of your source.
 
 ## Gro
 The Gro class must be constructed with the filename when declared with a string literal/c string. 
@@ -32,6 +34,17 @@ The Index class provides a data structure for each index group named *group*. Th
   - char* grname  (Name for the specific group)
   - int start     (Starting index for that group)
   - int end       (Ending index for that group)
+
+## Topol
+The Topol class must be constructed with the filename when declared with a string literal/c string.
+
+The Topol class provides a data structure for each residue in order along with their residue amounts named *residue*.  
+
+The best way to use Topol is to use topol.getResidues(int& size) which will return a residue array and initialize *size* to the size of the array. 
+
+  ***residue***
+  - char* resname (Name for the residue group)
+  - int nmolc     (Number of molecules for that residue)
 
 # To-Do
 - .top/.itp file additions
