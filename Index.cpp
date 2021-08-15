@@ -95,7 +95,6 @@ Index::group Index::readGroup(char* hline, int size)
 	temp.grname = new char[n+1];
 	memcpy(temp.grname, hline+1, n);
 	temp.grname[n] = '\0';
-	//std::cout << "GROUP: " << temp.grname << "A\n\n";
 	
 	for (int i = n; i < size; i++) //find start index
 	{
