@@ -59,7 +59,6 @@ The best way to use Topol is to use topol.getResidues(int& size) which will retu
   - int nmolc     (Number of molecules for that residue)
 
 # To-Do
-- .top/.itp file additions
 - .trr file aditions
 - .tpr file additions
 - .edr file additions
