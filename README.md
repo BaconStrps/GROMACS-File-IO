@@ -35,16 +35,17 @@ The Index class provides a data structure for each index group named *group*. Th
   - int* start     (Starting indexes for that group)
   - int* end       (Ending indexes for that group)
   
-  Indexes for the group follow in numerical order. If you had a file like
-  \[ MEMB ]
-  1 2 5 6
-  \[ WATER ]
+  Indexes for the group follow in numerical order. If you had a file like  
+  \[ MEMB ]  
+  1 2 5 6  
+  \[ WATER ]  
   3 4
   
-  start\[0] would contain 1
-  end\[0] would contain 2
-  start\[1] would contain 5
-  end\[1] would contain 6.
+  For the MEMB group,  
+  start\[0] would contain 1  
+  end\[0] would contain 2  
+  start\[1] would contain 5  
+  end\[1] would contain 6  
 
 ## Topol
 The Topol class must be constructed with the filename when declared with a string literal/c string.
@@ -58,7 +59,6 @@ The best way to use Topol is to use topol.getResidues(int& size) which will retu
   - int nmolc     (Number of molecules for that residue)
 
 # To-Do
-- .top/.itp file additions
 - .trr file aditions
 - .tpr file additions
 - .edr file additions
