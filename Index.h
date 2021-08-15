@@ -7,9 +7,10 @@ class Index
 		
 		struct group
 		{
-			char* grname;
-			int start;
-			int end;
+			char* grname = nullptr;
+			int* indstart = nullptr;
+			int* indend = nullptr;
+			int size;
 		};
 	
 		Index(const char* fn);
@@ -18,6 +19,8 @@ class Index
 		int getGroupnum();
 		
 		bool fail();
+		
+		int* getGroupData(int& size);
 		
 		group* getGroups(int& size);
 		
@@ -29,8 +32,10 @@ class Index
 		
 		int groupnum;
 		
+		int getabsdif(char* a1, char* a2);
+		
 		void initIndex();
-		group readGroup(char* hline);
+		group readGroup(char* hline, int size);
 	
 };
 

@@ -24,6 +24,8 @@ Index::~Index()
 	for (int i = 0; i < groupnum; i++)
 	{
 		delete [] grs[i].grname;
+		delete [] grs[i].indstart;
+		delete [] grs[i].indend;
 	}
 	
 	delete [] grs;
@@ -54,7 +56,7 @@ void Index::initIndex()
 		if (buf[i] == '\n' || i == 0)
 			if (buf[i+1] == '[' || i == 0)
 			{
-				headpos[groupnum++] = i+1;
+				headpos[groupnum++] = (i == 0) ? i+1 : i+2;
 			}
 	}
 	
@@ -62,73 +64,176 @@ void Index::initIndex()
 	
 	for (int i = 0; i < groupnum; i++)
 	{
-		grs[i] = readGroup(&buf[headpos[i]]);
+		grs[i] = readGroup(&buf[headpos[i]], size - headpos[i]);
 	}
+	
+	index.close();
 	
 	delete [] buf;
 	
 }
 
-Index::group Index::readGroup(char* hline)
+Index::group Index::readGroup(char* hline, int size)
 {
 	group temp;
-	char c;
-	int n = strstr(hline, "]") - hline - 1;
+	
+	int* starts = new int[256];
+	int* ends = new int[256]; // temp storage
+	char num1[256];
+	char num2[256];
+	char tempnum[256];
+	
+	char *space, *newl, *head;
+	
+	memset(num1, 0, 256);
+	memset(num2, 0, 256);
+	memset(tempnum, 0, 256);
+	
+	size_t numswap = 0;
+	int numlength;
+	int n = strstr(hline, "]") - hline - 2;
+	
 	temp.grname = new char[n+1];
 	memcpy(temp.grname, hline+1, n);
 	temp.grname[n] = '\0';
+	//std::cout << "GROUP: " << temp.grname << "A\n\n";
 	
-	for (int i = n;;i++)
+	for (int i = n; i < size; i++) //find start index
 	{
-		if (isalnum(hline[i]))
+		if (isdigit(hline[i]))
 		{
-			for (int j = 0;;j++)
-			{
-				if (!isalnum(hline[i+j]))
-				{
-					c = hline[i+j];
-					hline[i+j] = '\0';
-					temp.start = atoi(&hline[i]);
-					hline[i+j] = c;
-					break;
-				}
-			}
+		//	std::cout << "before first digit\n";
+			numlength = (strstr(&hline[i], " ") - &hline[i]);
+			memcpy(num1, &hline[i], numlength);
+		//	std::cout << "after first memcpy\n";
+			num1[numlength] = '\0';
+			starts[numswap] = atoi(num1);
+		//	std::cout << "after first atoi\n";
+			numswap++;
 			break;
 		}
 	}
+//	std::cout << "after first loop\n";
 	
-	for (int i = n;;i++)
+	for (int i = n; i < size; i++)
 	{
-		if (hline[i] == 0)
+		if (isdigit(hline[i]))
 		{
-			for (int j = 0;;j++)
+			head = strchr(&hline[i], '[');
+			space = strchr(&hline[i], ' ');
+			newl = strchr(&hline[i], '\n');
+			if (space == nullptr && newl == nullptr && head == nullptr)
 			{
-				if (hline[i-j] == ' ' && isalnum(hline[i-j+1]))
-				{
-					temp.end = atoi(&hline[i-j]);
-					break;
-				}
+				numlength = size - i;
+				//std::cout << "numlength null top: " << numlength << '\t' << i << '\n';
 			}
-			break;
-		}
-		
-		if (hline[i] == '\n')
-			if (hline[i+1] == '[')
+			else if (head < space && head != nullptr)
 			{
-				for (int j = 0;;j++)
+				numlength = head - &hline[i];
+				//std::cout << "numlength head top: " << numlength << '\t' << hline[i] << '\n';
+			}
+			else if (space > newl && newl != nullptr && space != nullptr)
+			{
+				numlength = newl - &hline[i];
+				//std::cout << "numlength newltop: " << numlength << '\n';
+			}
+			else if (space != nullptr)
+			{
+				numlength = space - &hline[i];
+				//std::cout << "numlength spacetop: " << numlength << '\n';
+			}
+			//std::cout << numlength << '\n';
+			strncpy(num1, &hline[i], numlength);
+			num1[numlength] = '\0';
+			
+			if (numlength < 0)
+				break;
+			
+			if (num1[0] != 0 && num2[0] != 0 && (getabsdif(num1, num2) > 1 || getabsdif(num2, tempnum) > 1))
+			{
+				//std::cout << "integer: " << num1 << '\t' << num2 << '\t' << tempnum << '\t' << numlength << '\n';
+				if (getabsdif(tempnum, num2) > 1)
 				{
-					if ((hline[i-j] == ' ' || hline[i-j] == '\n') && isalnum(hline[i-j+1]))
+					starts[numswap] = (atoi(tempnum) - atoi(num2) < 0) ? atoi(num2) : atoi(tempnum);
+					ends[numswap-1] = (atoi(tempnum) - atoi(num2) > 0) ? atoi(num2) : atoi(tempnum);
+				}
+				else
+				{				
+					starts[numswap] = (atoi(num1) - atoi(num2) < 0) ? atoi(num2) : atoi(num1);
+					ends[numswap-1] = (atoi(num1) - atoi(num2) > 0) ? atoi(num2) : atoi(num1);
+				}
+				numswap++;
+			}
+			
+			for (int j = numlength; i+j < size; j++)
+			{
+				if (isdigit(hline[i+j]))
+				{
+					
+					space = strchr(&hline[i+j], ' ');
+					newl = strchr(&hline[i+j], '\n');
+					
+					if (space == nullptr && newl == nullptr && head == nullptr)
 					{
-						hline[i] = '\0';
-						temp.end = atoi(&hline[i-j]);
+						numlength = size - i;
+						//std::cout << "numlength null bottom: " << numlength << '\n';
+					}
+					else if (head < space && head != nullptr)
+					{
+						numlength = head - &hline[i];
+						//std::cout << "numlength head bot: " << numlength << '\n';
+					}
+					else if (space > newl && newl != nullptr && space != nullptr)
+					{
+						numlength = newl - &hline[i+j];
+						//std::cout << "numlength newlbot: " << numlength << '\n';
+					}
+					else if (space != nullptr)
+					{
+						numlength = space - &hline[i+j];
+						//std::cout << "numlength spacebot: " << numlength << '\n';
+					}
+					if (numlength < 0)
+						break;
+					strncpy(num2, &hline[i+j], numlength);
+					num2[numlength] = '\0';
+					
+					if (head < space && head != nullptr)
+					{
+						if (hline[i+j-2] == ']')
+							memset(num2, 0, 256);
+						i+=numlength;
 						break;
 					}
+					i += j + numlength;
+					//std::cout << "nums: " << num1 << '\t' << num2 << '\n';
+					break;
 				}
-				
-				break; 
 			}
+		}
+		strcpy(tempnum, num1);
+		if (hline[i] == '[')
+			break;
+		
 	}
+	ends[numswap-1] = (atoi(num1) - atoi(num2) < 0) ? atoi(num2) : atoi(num1);
 	
+/*	for (int i = 0; i < numswap; i++)
+	{
+		std::cout << "arrays: " << starts[i] << '\t' << ends[i] << '\n';
+	}*/
+	
+	temp.indstart = starts;
+	temp.indend = ends;
+	temp.size = numswap;
+	
+	return temp;
+}
+
+int Index::getabsdif(char* a1, char* a2)
+{
+	int temp;
+	temp = ((atoi(a1) - atoi(a2) > 0) ? atoi(a1) - atoi(a2) : atoi(a2) - atoi(a1));
 	return temp;
 }
 
