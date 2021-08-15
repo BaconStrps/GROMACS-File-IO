@@ -1,5 +1,4 @@
 #include "Index.h"
-#include <iostream>
 #include <string.h>
 Index::Index(const char* fn)
 {
@@ -102,19 +101,15 @@ Index::group Index::readGroup(char* hline, int size)
 	{
 		if (isdigit(hline[i]))
 		{
-		//	std::cout << "before first digit\n";
 			numlength = (strstr(&hline[i], " ") - &hline[i]);
 			memcpy(num1, &hline[i], numlength);
-		//	std::cout << "after first memcpy\n";
 			num1[numlength] = '\0';
 			starts[numswap] = atoi(num1);
-		//	std::cout << "after first atoi\n";
 			numswap++;
 			break;
 		}
 	}
-//	std::cout << "after first loop\n";
-	
+
 	for (int i = n; i < size; i++)
 	{
 		if (isdigit(hline[i]))
@@ -125,24 +120,19 @@ Index::group Index::readGroup(char* hline, int size)
 			if (space == nullptr && newl == nullptr && head == nullptr)
 			{
 				numlength = size - i;
-				//std::cout << "numlength null top: " << numlength << '\t' << i << '\n';
 			}
 			else if (head < space && head != nullptr)
 			{
 				numlength = head - &hline[i];
-				//std::cout << "numlength head top: " << numlength << '\t' << hline[i] << '\n';
 			}
 			else if (space > newl && newl != nullptr && space != nullptr)
 			{
 				numlength = newl - &hline[i];
-				//std::cout << "numlength newltop: " << numlength << '\n';
 			}
 			else if (space != nullptr)
 			{
 				numlength = space - &hline[i];
-				//std::cout << "numlength spacetop: " << numlength << '\n';
 			}
-			//std::cout << numlength << '\n';
 			strncpy(num1, &hline[i], numlength);
 			num1[numlength] = '\0';
 			
@@ -151,7 +141,6 @@ Index::group Index::readGroup(char* hline, int size)
 			
 			if (num1[0] != 0 && num2[0] != 0 && (getabsdif(num1, num2) > 1 || getabsdif(num2, tempnum) > 1))
 			{
-				//std::cout << "integer: " << num1 << '\t' << num2 << '\t' << tempnum << '\t' << numlength << '\n';
 				if (getabsdif(tempnum, num2) > 1)
 				{
 					starts[numswap] = (atoi(tempnum) - atoi(num2) < 0) ? atoi(num2) : atoi(tempnum);
@@ -176,22 +165,18 @@ Index::group Index::readGroup(char* hline, int size)
 					if (space == nullptr && newl == nullptr && head == nullptr)
 					{
 						numlength = size - i;
-						//std::cout << "numlength null bottom: " << numlength << '\n';
 					}
 					else if (head < space && head != nullptr)
 					{
 						numlength = head - &hline[i];
-						//std::cout << "numlength head bot: " << numlength << '\n';
 					}
 					else if (space > newl && newl != nullptr && space != nullptr)
 					{
 						numlength = newl - &hline[i+j];
-						//std::cout << "numlength newlbot: " << numlength << '\n';
 					}
 					else if (space != nullptr)
 					{
 						numlength = space - &hline[i+j];
-						//std::cout << "numlength spacebot: " << numlength << '\n';
 					}
 					if (numlength < 0)
 						break;
@@ -206,7 +191,6 @@ Index::group Index::readGroup(char* hline, int size)
 						break;
 					}
 					i += j + numlength;
-					//std::cout << "nums: " << num1 << '\t' << num2 << '\n';
 					break;
 				}
 			}
@@ -218,10 +202,6 @@ Index::group Index::readGroup(char* hline, int size)
 	}
 	ends[numswap-1] = (atoi(num1) - atoi(num2) < 0) ? atoi(num2) : atoi(num1);
 	
-/*	for (int i = 0; i < numswap; i++)
-	{
-		std::cout << "arrays: " << starts[i] << '\t' << ends[i] << '\n';
-	}*/
 	
 	temp.indstart = starts;
 	temp.indend = ends;
