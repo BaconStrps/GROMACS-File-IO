@@ -68,7 +68,7 @@ The Trr class provides a way to read each frame sequentially from a .trr file.
 To use, you should declare a .trr object with a valid filename. Then, when you'd like to read a frame you call the readFrame() method which will return false if it is successful.  
 After, you should call the getPrecision() method which will return true if the .trr is double-precision, or false if it is single-precision. This is because GROMACS can write to a trr in either double or single precision and you either need to know ahead of time or figure it out on the fly. If you know the precision ahead of time you can skip the getPrecision() step.  
 
-Then depending on whether you want the coordinates, velocities, or forces, you should call the getX<type>() getV<type>() or getF<type>() method templates with the corresponding type (double or float) which will return a pointer to an array of (DIM \* natoms) size. To index through this array you should do something like x\[j + i\*DIM\]. The array is set up like so  
+Then depending on whether you want the coordinates, velocities, or forces, you should call the getX\<type\>() getV\<type\>() or getF\<type\>() method templates with the corresponding type (double or float) which will return a pointer to an array of (DIM \* natoms) size. To index through this array you should do something like x\[j + i\*DIM\]. The array is set up like so  
 
  - x\[i\*DIM\] = {(1st), (2nd), (3rd)}  
   
