@@ -31,9 +31,10 @@ The Index class must be constructed with the filename when declared with a strin
 The Index class provides a data structure for each index group named *group*. The groups may be retrieved from the class using the member function getGroups() which takes in an integer reference for the size of the *group* array held by the Index object and returns a *group* pointer for the array of *groups*.  
   
   ***group***
-  - char* grname  (Name for the specific group)
+  - char* grname   (Name for the specific group)
   - int* start     (Starting indexes for that group)
   - int* end       (Ending indexes for that group)
+  - int size       (Amount of swaps)
   
   Indexes for the group follow in numerical order. If you had a file like  
   \[ MEMB ]  
