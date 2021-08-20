@@ -83,11 +83,10 @@ Index::group Index::readGroup(char* hline, int endofgr)
 	
 	size_t numswap = 0;
 	int numlength;
-	int n = strstr(hline, "]") - hline - 2;
-	//printf("hlinestart: %p\nSize: %d\nEndofgr: %p\n", hline, endofgr, hline+endofgr);
+	int n = strstr(hline, "]") - hline - 3;
 	
 	temp.grname = new char[n+1];
-	memcpy(temp.grname, hline+1, n);
+	memcpy(temp.grname, hline+2, n);
 	temp.grname[n] = '\0';
 	curpos += n+1;
 	
@@ -95,12 +94,10 @@ Index::group Index::readGroup(char* hline, int endofgr)
 	{
 		if (isdigit(*curpos))
 		{
-			//printf("%c\n", *curpos);
 			starts[numswap] = atoi(curpos);
 			numswap++;
 			break;
 		}
-		//printf("%c\n", *curpos);
 		curpos++;
 	}
 
@@ -162,96 +159,6 @@ Index::group Index::readGroup(char* hline, int endofgr)
 		ends[numswap-1] = num2;
 	}
 
-	/*for (int i = n; i < size; i++)
-	{
-		if (isdigit(hline[i]))
-		{
-			head = strchr(&hline[i], '[');
-			space = strchr(&hline[i], ' ');
-			newl = strchr(&hline[i], '\n');
-			if (space == nullptr && newl == nullptr && head == nullptr)
-			{
-				numlength = size - i;
-			}
-			else if (head < space && head != nullptr)
-			{
-				numlength = head - &hline[i];
-			}
-			else if (space > newl && newl != nullptr && space != nullptr)
-			{
-				numlength = newl - &hline[i];
-			}
-			else if (space != nullptr)
-			{
-				numlength = space - &hline[i];
-			}
-			strncpy(num1, &hline[i], numlength);
-			num1[numlength] = '\0';
-			
-			if (numlength < 0)
-				break;
-			
-			if (num1[0] != 0 && num2[0] != 0 && (getabsdif(num1, num2) > 1 || getabsdif(num2, tempnum) > 1))
-			{
-				if (getabsdif(tempnum, num2) > 1)
-				{
-					starts[numswap] = (atoi(tempnum) - atoi(num2) < 0) ? atoi(num2) : atoi(tempnum);
-					ends[numswap-1] = (atoi(tempnum) - atoi(num2) > 0) ? atoi(num2) : atoi(tempnum);
-				}
-				else
-				{				
-					starts[numswap] = (atoi(num1) - atoi(num2) < 0) ? atoi(num2) : atoi(num1);
-					ends[numswap-1] = (atoi(num1) - atoi(num2) > 0) ? atoi(num2) : atoi(num1);
-				}
-				numswap++;
-			}
-			
-			for (int j = numlength; i+j < size; j++)
-			{
-				if (isdigit(hline[i+j]))
-				{
-					
-					space = strchr(&hline[i+j], ' ');
-					newl = strchr(&hline[i+j], '\n');
-					
-					if (space == nullptr && newl == nullptr && head == nullptr)
-					{
-						numlength = size - i;
-					}
-					else if (head < space && head != nullptr)
-					{
-						numlength = head - &hline[i];
-					}
-					else if (space > newl && newl != nullptr && space != nullptr)
-					{
-						numlength = newl - &hline[i+j];
-					}
-					else if (space != nullptr)
-					{
-						numlength = space - &hline[i+j];
-					}
-					if (numlength < 0)
-						break;
-					strncpy(num2, &hline[i+j], numlength);
-					num2[numlength] = '\0';
-					
-					if (head < space && head != nullptr)
-					{
-						if (hline[i+j-2] == ']')
-							memset(num2, 0, 256);
-						i+=numlength;
-						break;
-					}
-					i += j + numlength;
-					break;
-				}
-			}
-		}
-		strcpy(tempnum, num1);
-		if (hline[i] == '[')
-			break;
-		
-	}*/ //banish this code
 
 	temp.indstart = starts;
 	temp.indend = ends;
@@ -271,8 +178,6 @@ int Index::getnumlength(int num)
 	{
 		for (i = 0; num != 0; i++)
 			num/=10;
-
-		//printf("i: %d\n", i);
 		return i;
 	}
 
