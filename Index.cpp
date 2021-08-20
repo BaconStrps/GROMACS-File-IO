@@ -11,6 +11,10 @@ Index::Index(const char* fn)
 		f = true;
 		index.close();
 	}
+
+	index.seekg(0, index.end);
+	size = index.tellg();
+	index.seekg(0);
 	
 	groupnum = 0;
 	
@@ -27,36 +31,33 @@ Index::~Index()
 		delete [] grs[i].indend;
 	}
 	
+	index.close();
+
 	delete [] grs;
 }
 
 
 void Index::initIndex()
 {
-	int size; 
 	int headpos[128]; // id be surprised if someone had more than 128 unique groups
-	char* buf;
-	index.seekg(0, index.end);
-	size = index.tellg();
-	buf = new char[size+1]; 
-	
-	index.seekg(0, index.beg);
+
+	memset(headpos, 0, 128*sizeof(int));
+
+	char buf[size+1];
+	buf[size] = 0;
+
 	if (index.fail())
 	{
 		f = true;
 		return;
 	}
+
 	index.read(buf, size);
-	
-	buf[size] = '\0';
 	
 	for (int i = 0; i < size; i++)
 	{
-		if (buf[i] == '\n' || i == 0)
-			if (buf[i+1] == '[' || i == 0)
-			{
-				headpos[groupnum++] = (i == 0) ? i+1 : i+2;
-			}
+		if (buf[i] == '[')
+			headpos[groupnum++] = i;
 	}
 	
 	grs = new group[groupnum];
@@ -66,50 +67,102 @@ void Index::initIndex()
 		grs[i] = readGroup(&buf[headpos[i]], size - headpos[i]);
 	}
 	
-	index.close();
-	
-	delete [] buf;
 	
 }
 
-Index::group Index::readGroup(char* hline, int size)
+Index::group Index::readGroup(char* hline, int endofgr)
 {
 	group temp;
 	
 	int* starts = new int[256];
 	int* ends = new int[256]; // temp storage
-	char num1[256];
-	char num2[256];
-	char tempnum[256];
+
+	int num1 = 0, num2 = 0, dif = 0;
 	
-	char *space, *newl, *head;
-	
-	memset(num1, 0, 256);
-	memset(num2, 0, 256);
-	memset(tempnum, 0, 256);
+	char* curpos = hline;
 	
 	size_t numswap = 0;
 	int numlength;
 	int n = strstr(hline, "]") - hline - 2;
+	//printf("hlinestart: %p\nSize: %d\nEndofgr: %p\n", hline, endofgr, hline+endofgr);
 	
 	temp.grname = new char[n+1];
 	memcpy(temp.grname, hline+1, n);
 	temp.grname[n] = '\0';
+	curpos += n+1;
 	
-	for (int i = n; i < size; i++) //find start index
+	while (1)
 	{
-		if (isdigit(hline[i]))
+		if (isdigit(*curpos))
 		{
-			numlength = (strstr(&hline[i], " ") - &hline[i]);
-			memcpy(num1, &hline[i], numlength);
-			num1[numlength] = '\0';
-			starts[numswap] = atoi(num1);
+			//printf("%c\n", *curpos);
+			starts[numswap] = atoi(curpos);
 			numswap++;
 			break;
 		}
+		//printf("%c\n", *curpos);
+		curpos++;
 	}
 
-	for (int i = n; i < size; i++)
+
+	for (int i = 0; curpos < hline + endofgr; i++)
+	{
+		if (isdigit(*curpos))
+		{
+			num1 = atoi(curpos);
+
+			curpos += getnumlength(num1);
+
+			if (num2)
+			{
+				dif = num1 - num2;
+				if (dif != 1 && dif != -1)
+				{
+					starts[numswap] = (num1 > num2) ? num1 : num2;
+					ends[numswap-1] = (num1 > num2) ? num2 : num1;
+					numswap++;
+				}
+			}
+
+			for (int j = 0;;j++)
+			{
+				if (*curpos == '[')
+					break;
+				if (isdigit(*curpos))
+				{
+					num2 = atoi(curpos);
+					curpos += getnumlength(num2);
+					dif = num1 - num2;
+					if (dif != 1 && dif != -1)
+					{
+						starts[numswap] = (num1 > num2) ? num1 : num2;
+						ends[numswap-1] = (num1 > num2) ? num2 : num1;
+						numswap++;
+					}
+					break;
+				}
+				curpos++;
+			}
+		}
+		if (*curpos == 0 || *curpos == '[')
+			break;
+		curpos++;
+	}
+
+	if (num1 != 0 && num2 != 0)
+	{
+		ends[numswap-1] = (num1 > num2) ? num1 : num2;
+	}
+	else if (num1 != 0)
+	{
+		ends[numswap-1] = num1;
+	}
+	else
+	{
+		ends[numswap-1] = num2;
+	}
+
+	/*for (int i = n; i < size; i++)
 	{
 		if (isdigit(hline[i]))
 		{
@@ -198,15 +251,31 @@ Index::group Index::readGroup(char* hline, int size)
 		if (hline[i] == '[')
 			break;
 		
-	}
-	ends[numswap-1] = (atoi(num1) - atoi(num2) < 0) ? atoi(num2) : atoi(num1);
-	
-	
+	}*/ //banish this code
+
 	temp.indstart = starts;
 	temp.indend = ends;
 	temp.size = numswap;
 	
 	return temp;
+}
+
+int Index::getnumlength(int num)
+{
+	int i;
+	if (num == 0)
+	{
+		return 1;
+	}
+	else
+	{
+		for (i = 0; num != 0; i++)
+			num/=10;
+
+		//printf("i: %d\n", i);
+		return i;
+	}
+
 }
 
 int Index::getabsdif(char* a1, char* a2)

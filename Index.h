@@ -20,8 +20,6 @@ class Index
 		
 		bool fail();
 		
-		int* getGroupData(int& size);
-		
 		group* getGroups(int& size);
 		
 		
@@ -31,6 +29,9 @@ class Index
 		group* grs; // group pointer for array
 		
 		int groupnum;
+		int size;
+
+		int getnumlength(int num);
 		
 		int getabsdif(char* a1, char* a2);
 		
