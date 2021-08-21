@@ -88,7 +88,7 @@ Index::group Index::readGroup(char* hline, int endofgr)
 	temp.grname = new char[n+1];
 	memcpy(temp.grname, hline+2, n);
 	temp.grname[n] = '\0';
-	curpos += n+1;
+	curpos += n+2;
 	
 	while (1)
 	{
