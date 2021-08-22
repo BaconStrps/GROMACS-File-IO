@@ -75,8 +75,6 @@ Then depending on whether you want the coordinates, velocities, or forces, you s
 in x\[j + i\*DIM\], j will index (1st) (2nd) or (3rd) and of course, i\*DIM will index i\*DIM.  
   
 You can get natoms by calling the getnatoms() method which will return the amount of atoms (int).  
-## Note:
-  In order to use the Trr class you must have the rpc library installed, specifically rpc/xdr.h which includes all the XDR routines to encode and decode information. These are the routines used to read/write .trr files.
 # To-Do
 - .tpr file additions
 - .edr file additions
