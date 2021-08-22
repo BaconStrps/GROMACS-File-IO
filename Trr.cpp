@@ -1,4 +1,5 @@
 #include "Trr.h"
+#include "xdr.h"
 #define readint(file, item)             readxdr(file, &(item), 0, INT)
 #define readreal(file, item)          readxdr(file, &(item), 0, REAL)
 #define readchar(file, item)            readxdr(file, &(item), 0, CHAR)
@@ -12,7 +13,7 @@ Trr::Trr(const char* fn)
 {
     first = true;
     failed = false;
-    openxdr(&file, READ, fn);
+    file.fp = fopen(fn, "r");
     readheader(&file, &header);
 
     if (file.Double)
@@ -49,7 +50,6 @@ Trr::~Trr()
     }
 
     fclose(file.fp);
-    delete file.xdrptr;
 
 }
 bool Trr::readFrame()
@@ -81,47 +81,28 @@ bool Trr::readFrame()
     return failed;
 }
 
-void Trr::openxdr(trr_file* file, readwrite rw, const char* filename)
-{
-    bool good;
-    file->xdrptr = new XDR;
-    file->xdrptr->x_ops = NULL;
-    if (rw == WRITE)
-    {
-        file->Write = true;
-        file->fp = fopen(filename, "w");
-    }
-    if (rw == READ)
-    {
-        file->Read = true;
-        file->fp = fopen(filename, "r");
-    }
-    xdrstdio_create(file->xdrptr, file->fp, (rw==READ) ? XDR_DECODE : XDR_ENCODE);
-
-    if (file->xdrptr->x_ops == NULL)
-    {
-        printf("xdr null\n");
-    }
-}
-
 int Trr::setfloatsize(trr_header* header)
 {
     int size = 0;
 
     if (header->box_size)
     {
+        printf("box size\n");
         size = header->box_size / (DIM*DIM);
     }
     else if (header->x_size)
     {
+        printf("xsize\n");
         size = header->x_size / (header->natoms * DIM);
     }
     else if (header->v_size)
     {
+        printf("vsize\n");
         size = header->v_size / (header->natoms * DIM);
     }
     else if (header->f_size)
     {
+        printf("fsize\n");
         size = header->f_size / (header->natoms * DIM);
     }
     else
@@ -163,6 +144,7 @@ bool Trr::readheader(trr_file* file, trr_header* header)
         printf("strfail\n");
         return false;
     }
+    printf("%s\n", buf);
 
     good &= readint(file, header->ir_size);
     good &= readint(file, header->e_size);
@@ -175,6 +157,18 @@ bool Trr::readheader(trr_file* file, trr_header* header)
     good &= readint(file, header->v_size);
     good &= readint(file, header->f_size);
     good &= readint(file, header->natoms);
+
+    printf("%d\n", header->ir_size);
+    printf("%d\n", header->e_size);
+    printf("%d\n", header->box_size);
+    printf("%d\n", header->vir_size);
+    printf("%d\n", header->pres_size);
+    printf("%d\n", header->top_size);
+    printf("%d\n", header->sym_size);
+    printf("%d\n", header->x_size);
+    printf("%d\n", header->v_size);
+    printf("%d\n", header->f_size);
+    printf("%d\n", header->natoms);
 
     if (setfloatsize(header) == sizeof(double))
     {
@@ -210,8 +204,8 @@ bool Trr::readframedata(trr_file* file, trr_header* header, real* box, real* x, 
 
     if (header->box_size != 0)
     {
+        printf("%p\n", box);
         good &= readrvec(file, box, DIM);
-        //printf("box: %d\n", good);
     }
  
     if (header->vir_size != 0)
@@ -277,7 +271,7 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
                 {
                     d = *static_cast<double*>(item);
                 }
-                good = xdr_double(file->xdrptr, &d);
+                good = xdr_double(file->fp, &d);
                 if (item)
                 {
                     *static_cast<double*>(item) = d;
@@ -289,7 +283,7 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
                 {
                     f = *static_cast<float*>(item);
                 }
-                good = xdr_float(file->xdrptr, &f);
+                good = xdr_float(file->fp, &f);
                 if (item)
                 {
                     *static_cast<float*>(item) = f;
@@ -301,44 +295,10 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
             {
                 i = *static_cast<int*>(item);
             }
-            good = xdr_int(file->xdrptr, &i);
+            good = xdr_int(file->fp, &i);
             if (item)
             {
                 *static_cast<int*>(item) = i;
-            }
-            break;
-        case UCHAR:
-            if (file->Write)
-            {
-                uc = *static_cast<unsigned char*>(item);
-            }
-            good = xdr_u_char(file->xdrptr, &uc);
-            if (item)
-            {
-                *static_cast<unsigned char*>(item) = uc;
-            }
-            break;
-        case CHAR:
-            if (file->Write)
-            {
-                c = *static_cast<char*>(item);
-            }
-            good = xdr_char(file->xdrptr, &c);
-            if (item)
-            {
-                *static_cast<char*>(item) = c;
-            }
-            break;
-        case INTARR:
-            iptr = static_cast<int*>(item);
-            for (int i = 0; i < DIM; i++)
-            {
-                iptr[i] = icurpos;
-                good = xdr_int(file->xdrptr, &icurpos);
-                if (item)
-                {
-                    iptr[i] = icurpos;
-                }
             }
             break;
         case REALARR:
@@ -354,7 +314,7 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
                 }
                 
 
-                good = xdr_vector(file->xdrptr, reinterpret_cast<char*>(darr), DIM, static_cast<unsigned int>(sizeof(double)), reinterpret_cast<xdrproc_t>(xdr_double));
+                good = xdr_vector(file->fp, reinterpret_cast<char*>(darr), DIM, static_cast<unsigned int>(sizeof(double)), &xdr_double);
 
                 if (item)
                 {
@@ -374,7 +334,7 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
                         farr[i] = static_cast<float*>(item)[i];
                     }
                 }
-                good = xdr_vector(file->xdrptr, reinterpret_cast<char*>(farr), DIM, static_cast<unsigned int>(sizeof(float)), reinterpret_cast<xdrproc_t>(xdr_float));
+                good = xdr_vector(file->fp, reinterpret_cast<char*>(farr), DIM, static_cast<unsigned int>(sizeof(float)), &xdr_float);
                 if (item)
                 {
                     for (int i = 0; i < DIM; i++)
@@ -394,7 +354,7 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
             {
                 slen = 0;
             }
-            if (xdr_int(file->xdrptr, &slen) <= 0)
+            if (xdr_int(file->fp, &slen) <= 0)
             {
                 printf("strlenfail\n");
                 good = true;
@@ -407,6 +367,8 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
             }
             else
             {
+                printf("cptr assigned\n");
+                printf("slen: %d\n", slen);
                 cptr = static_cast<char*>(item);
             }
             if (!cptr)
@@ -414,7 +376,7 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
                 good = true;
                 break;
             }
-            good = xdr_string(file->xdrptr, &cptr, slen);
+            good = xdr_string(file->fp, cptr, slen);
             if (file->Read && !item)
             {
                 free(cptr);
@@ -423,20 +385,14 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
 
         case RVECARR:
             if (file->Double)
-            { 
-                for (int i = 0; i < arrsize; i++)
-                {
-                    dptr = *(static_cast<double**>(item)) + i*DIM;
-                    good = readxdr(file, dptr, 1, REALARR);
-                }
+            {
+                dptr = *static_cast<double**>(item);
+                good = xdr_vector(file->fp, reinterpret_cast<char*>(dptr), sizeof(double), arrsize*DIM, &xdr_double);
             }
             else
             {
-                for (int i = 0; i < arrsize; i++)
-                {
-                    fptr = *(static_cast<float**>(item)) + i*DIM;
-                    good = readxdr(file, fptr, 1, REALARR);
-                }
+                fptr = *static_cast<float**>(item);
+                good = xdr_vector(file->fp, reinterpret_cast<char*>(fptr), sizeof(float), arrsize*DIM, &xdr_float);
             }
             break;
     }

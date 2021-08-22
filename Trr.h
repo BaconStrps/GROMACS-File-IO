@@ -2,8 +2,8 @@
 #define GMX_TRR_FIO
 #define DIM 3
 #define MAGICNUM 1993 // this may be changed at any point, refer to GROMACS source code in trrio.cpp and change this if needed
-#include <rpc/xdr.h>
 #include <cstring>
+#include <cstdlib>
 #include <stdio.h>
 
 class Trr
@@ -65,7 +65,6 @@ class Trr
         bool Read = false;
         bool Write = false;
         bool Double = false;
-        XDR* xdrptr;
     };
 
     bool first;
@@ -80,8 +79,6 @@ class Trr
     trr_header header;
 
     int setfloatsize(trr_header* header);
-
-    void openxdr(trr_file* file, readwrite rw, const char* filename);
 
     bool readframedata(trr_file*, trr_header*, real*, real*, real*, real*);
 
