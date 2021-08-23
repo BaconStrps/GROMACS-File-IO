@@ -43,7 +43,7 @@ void Index::initIndex()
 
 	memset(headpos, 0, 128*sizeof(int));
 
-	char buf[size+1];
+	char* buf = new char[size];
 	buf[size] = 0;
 
 	if (index.fail())
@@ -73,6 +73,9 @@ void Index::initIndex()
 Index::group Index::readGroup(char* hline, int endofgr)
 {
 	group temp;
+
+	if (endofgr < 0)
+		return temp;
 	
 	int* starts = new int[256];
 	int* ends = new int[256]; // temp storage
@@ -82,8 +85,7 @@ Index::group Index::readGroup(char* hline, int endofgr)
 	char* curpos = hline;
 	
 	size_t numswap = 0;
-	int numlength;
-	int n = strstr(hline, "]") - hline - 3;
+	size_t n = strstr(hline, "]") - hline - 3;
 	
 	temp.grname = new char[n+1];
 	memcpy(temp.grname, hline+2, n);
@@ -162,7 +164,7 @@ Index::group Index::readGroup(char* hline, int endofgr)
 
 	temp.indstart = starts;
 	temp.indend = ends;
-	temp.size = numswap;
+	temp.indices = numswap;
 	
 	return temp;
 }
@@ -183,12 +185,6 @@ int Index::getnumlength(int num)
 
 }
 
-int Index::getabsdif(char* a1, char* a2)
-{
-	int temp;
-	temp = ((atoi(a1) - atoi(a2) > 0) ? atoi(a1) - atoi(a2) : atoi(a2) - atoi(a1));
-	return temp;
-}
 
 Index::group* Index::getGroups(int& size)
 {

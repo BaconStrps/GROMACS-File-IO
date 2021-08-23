@@ -49,80 +49,71 @@
 #ifndef XDR_PORT
 #define XDR_PORT
 #include <stdio.h>
+#include <fstream>
 
 
-typedef bool (*xdrproc)(FILE*, void*);
+typedef bool (*xdrproc)(char**, void*);
 
-bool xdr_int(FILE* file, void* dat)
+inline bool xdr_int(char** file, void* dat)
 {
     int temp;
     char* ptr = reinterpret_cast<char*>(dat);
     char* ptemp = reinterpret_cast<char*>(&temp);
-    if (!fread(ptemp, sizeof(int), 1, file))
+    memcpy(ptemp, *file, sizeof(int));
+    *file += sizeof(int);
+    for (int i = 0; i < sizeof(int); i++)
     {
-        return false;
+        ptr[i] = ptemp[sizeof(int) - 1 - i];
     }
-    for (int i = 0; i < 4; i++)
-    {
-        ptr[i] = ptemp[3 - i];
-    }
+
+
     return true;
 }
 
-bool xdr_long(FILE* file, void* dat)
+bool xdr_long(char** file, void* dat)
 {
-    int temp;
+    long temp;
     char* ptr = reinterpret_cast<char*>(dat);
     char* ptemp = reinterpret_cast<char*>(&temp);
-    if (!fread(ptemp, sizeof(long), 1, file))
+    memcpy(ptemp, file, sizeof(long));
+    *file += sizeof(long);
+    for (int i = 0; i < sizeof(long); i++)
     {
-        return false;
-    }
-    for (int i = 0; i < 8; i++)
-    {
-        ptr[i] = ptemp[7 - i];
+        ptr[i] = ptemp[sizeof(long) - 1 - i];
     }
 
     return true;
 }
 
-bool xdr_string(FILE* file, void* dat, const int& strlen) //this is specifically written differently for .trr files
+bool xdr_string(char** file, void* dat, const int& strlen) //this is specifically written differently for .trr files
 {
     char arr[4];
     int actualstrlen;
     xdr_int(file, &actualstrlen); // god damnit gromacs
-    printf("actualstrlen: %d\n", actualstrlen);
-    if (fread(dat, sizeof(char), actualstrlen, file) < actualstrlen)
-    {
-        printf("fail???\n");
-        return false;
-    }
+    memcpy(dat, file, actualstrlen);
+    *file += actualstrlen;
     if (actualstrlen % 4)
     {
-        printf("its in here???\n");
-        if(fread(arr, sizeof(char), 4 - actualstrlen%4, file) < 4 - actualstrlen%4)
-        {
-            return false;
-        }
+        *file += 4 - actualstrlen % 4;
     }
     reinterpret_cast<char*>(dat)[actualstrlen] = 0; //why would you do this to me
 
     return true;
 }
 
-bool xdr_float(FILE* file, void* dat)
+bool xdr_float(char** file, void* dat)
 {
     return xdr_int(file, dat);
 }
 
-bool xdr_double(FILE* file, void* dat)
+bool xdr_double(char** file, void* dat)
 {
     return xdr_long(file, dat);
 }
 
-bool xdr_vector(FILE* file, char* dat, const unsigned long& elsize, const unsigned long& elcount,  xdrproc f)
+bool xdr_vector(char** file, char* dat, const unsigned long& elsize, const unsigned long& elcount,  xdrproc f)
 {
-    for (int i = 0; i < elcount*elsize; i+=elsize)
+    for (unsigned long i = 0; i < elcount*elsize; i+=elsize)
     {
         if (!((*f)(file, (dat + i))))
         {

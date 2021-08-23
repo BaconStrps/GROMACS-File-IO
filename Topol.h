@@ -7,8 +7,8 @@ class Topol
 		
 		struct residue
 		{
-			char* resname;	//name of residue
-			int nmolc;		//molcules per residue
+			char* resname = nullptr;	//name of residue
+			int nmolc = 0;		//molcules per residue
 		};
 		
 		Topol(const char* fn);

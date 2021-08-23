@@ -10,7 +10,7 @@ Topol::Topol(const char* fn)
 		f = true;
 	
 	ff = nullptr;
-	rescount = 0;
+	rescount = 1;
 	searchTopol();
 }
 
@@ -43,11 +43,11 @@ void Topol::searchTopol()
 	char* temp = strstr(buf, "[ molecules ]");
 	molpos = temp - buf;
 	
-	for (int i = molpos+14; i < size ;i++)
+	for (size_t i = molpos + 14; i < size ;i++)
 	{
 		if (buf[i] == ';')
 		{
-			for (int j = 0; j < size - i ;j++)
+			for (size_t j = 0; j < size - i ;j++)
 			{
 				if (buf[i+j] == '\n')
 				{
@@ -70,11 +70,11 @@ void Topol::searchTopol()
 	ff = new residue[rescount];
 	
 	
-	for (int i = molpos + 14; i < size ;i++)
+	for (size_t i = molpos + 14; i < size ;i++)
 	{
 		if (buf[i] == ';')
 		{
-			for (int j = 0; j < size - i;j++)
+			for (size_t j = 0; j < size - i;j++)
 			{
 				if (buf[i+j] == '\n')
 				{
@@ -87,7 +87,7 @@ void Topol::searchTopol()
 		if (isalnum(buf[i]))
 		{
 			ff[resindex++] = checkResidue(&buf[i], size - i);
-			for (int j = 0; j < size - i ; j++)
+			for (size_t j = 0; j < size - i ; j++)
 			{
 				if (buf[i+j] == '\n' || j+1 == size - i)
 				{
@@ -137,7 +137,7 @@ Topol::residue Topol::checkResidue(char* buf, int size)
 			strl = &buf[i]-buf;
 			temp.resname = new char[strl+1];
 			memcpy(temp.resname, buf, strl);
-			temp.resname[strl] == '\0';
+			temp.resname[strl] = '\0';
 			break;
 		}
 	}

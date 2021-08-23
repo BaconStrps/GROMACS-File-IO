@@ -1,13 +1,16 @@
 #include <string>
 #include <fstream>
+#ifndef GFILE_GRO
+#define GFILE_GRO
+
 class Gro
 {
 	private:
 		bool fflag;
 		int numatoms;
 		int titlesize;
-		int linesize;
-		int datasize;
+		size_t linesize;
+		size_t datasize;
 		std::string currentline;
 		std::ifstream g;
 		char* buf;
@@ -18,12 +21,15 @@ class Gro
 	public:
 		Gro(const char* fn);
 		~Gro();
+
+		int getnumatoms() { return numatoms; };
 		
-		char** getdata(int start, int end, const char* dat);
+		char** getdata(long long start, long long end, const char* dat);
 		
 		bool fail(); 		// return fail
-		
-		int seekatom(int n);	// seek to specified atom number, return -1 if fail
 
 };
+
+
+#endif
 

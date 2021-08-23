@@ -1,14 +1,14 @@
 #ifndef GMX_TRR_FIO
 #define GMX_TRR_FIO
-#define DIM 3
-#define MAGICNUM 1993 // this may be changed at any point, refer to GROMACS source code in trrio.cpp and change this if needed
+constexpr long DIM = 3;
+constexpr long MAGICNUM = 1993; // this may be changed at any point, refer to GROMACS source code in trrio.cpp and change this if needed
 #include <cstring>
-#include <cstdlib>
-#include <stdio.h>
+#include <fstream>
+#include <memory>
 
 class Trr
 {
-    enum iotype{INT, REAL, CHAR, UCHAR, INTARR, REALARR, CHARARR, RVECARR};
+    enum class iotype{INT, REAL, CHAR, UCHAR, INTARR, REALARR, CHARARR, RVECARR};
     
     public:
                                 // Trr trr;
@@ -61,10 +61,25 @@ class Trr
     
     struct trr_file
     {
-        FILE* fp = nullptr;
+        std::ifstream fp;
+        size_t filesize;
+        char* buf;
+        char* pos;
         bool Read = false;
         bool Write = false;
         bool Double = false;
+
+        bool checkifend()
+        {
+            if (pos >= buf + filesize)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
     };
 
     bool first;

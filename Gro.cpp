@@ -4,7 +4,13 @@
 
 Gro::Gro(const char* fn)
 {
-	g.open(fn, std::ios_base::binary);
+	g.open(fn);
+
+	if (g.fail())
+	{
+		fflag = true;
+		std::cout << "failed\n";
+	}
 	
 	data = nullptr;
 	buf = nullptr;
@@ -33,7 +39,7 @@ Gro::~Gro()
 	g.close();
 }
 
-char** Gro::getdata(int start, int end, const char* dat)
+char** Gro::getdata(long long start, long long end, const char* dat)
 {
 	if (data)
 	{
@@ -47,15 +53,22 @@ char** Gro::getdata(int start, int end, const char* dat)
 		delete [] buf;
 	}
 	
-	int pos;
-	int len;
-	int offset;
+	size_t pos = 0;
+	size_t len = 0;
+	size_t seek = ((static_cast<long long>(start) - 1) * linesize + titlesize);
+	size_t offset;
 	datasize = end - start + 1;
 	buf = new char[datasize*linesize];
 		
-	g.seekg(((start-1) * linesize) + titlesize, g.beg);
+	g.seekg(seek);
 	
 	g.read(buf, datasize*linesize);
+
+	if (g.fail())
+	{
+		fflag = true;
+		return nullptr;
+	}
 	
 	if (g.gcount() != datasize*linesize) // safety just in case datasize would lead us past the end of file.
 	{
@@ -130,7 +143,6 @@ char** Gro::getdata(int start, int end, const char* dat)
 		offset = i*linesize + pos;
 		memcpy(data[i], &buf[offset], len);
 		data[i][len] = '\0';
-		
 	}
 	
 	
@@ -151,6 +163,7 @@ void Gro::dettitle()
 	titlesize += currentline.length() + 1;
 	
 	numatoms = atoi(currentline.c_str());
+	std::cout << "numatoms: " << numatoms << '\n';
 	
 	std::getline(g, currentline);
 	linesize += currentline.length() + 1; 		// this gives us the length of an atom line.

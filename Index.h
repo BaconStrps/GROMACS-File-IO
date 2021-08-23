@@ -10,7 +10,7 @@ class Index
 			char* grname = nullptr;
 			int* indstart = nullptr;
 			int* indend = nullptr;
-			int size;
+			int indices = 0;
 		};
 	
 		Index(const char* fn);
@@ -32,8 +32,6 @@ class Index
 		int size;
 
 		int getnumlength(int num);
-		
-		int getabsdif(char* a1, char* a2);
 		
 		void initIndex();
 		group readGroup(char* hline, int size);
