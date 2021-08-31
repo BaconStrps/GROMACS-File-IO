@@ -115,7 +115,7 @@ bool xdr_vector(char** file, char* dat, const unsigned long& elsize, const unsig
 {
     for (unsigned long i = 0; i < elcount*elsize; i+=elsize)
     {
-        if (!((*f)(file, (dat + i))))
+        if (!f(file, dat + i))
         {
             return false;
         }
