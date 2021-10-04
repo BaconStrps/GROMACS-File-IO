@@ -27,10 +27,9 @@ Trr::Trr(const char* fn)
     if (file.Double)
     {
         box.d =    new double[DIM*DIM];
-                    // long long to avoid any overflow issues. VS warned me
-        x.d =      new double[DIM*static_cast<long long>(header.natoms)];
-        v.d =      new double[DIM*static_cast<long long>(header.natoms)];
-        f.d =      new double[DIM*static_cast<long long>(header.natoms)];
+        x.d =      new double[DIM*static_cast<uint64_t>(header.natoms)];
+        v.d =      new double[DIM*static_cast<uint64_t>(header.natoms)];
+        f.d =      new double[DIM*static_cast<uint64_t>(header.natoms)];
     }
     else
     {
@@ -66,18 +65,15 @@ bool Trr::readFrame()
 {
     if (!first)
     {
-        //printf("notfirst\n");
         if (!readheader(&file, &header) || failed)
         {
             failed = true;
-            //printf("readheader fail\n");
             return failed;
         }
     }
     if(!readframedata(&file, &header, &box, &x, &v, &f))
     {
         failed = true;
-        //printf("readframedata fail\n");
         return failed;
     }
 
@@ -145,7 +141,6 @@ bool Trr::readheader(trr_file* file, trr_header* header)
         printf("strfail\n");
         return false;
     }
-    //printf("%s\n", buf);
 
     good &= readint(file, header->ir_size);
     good &= readint(file, header->e_size);
@@ -158,18 +153,6 @@ bool Trr::readheader(trr_file* file, trr_header* header)
     good &= readint(file, header->v_size);
     good &= readint(file, header->f_size);
     good &= readint(file, header->natoms);
-
-   /* printf("%d\n", header->ir_size);
-    printf("%d\n", header->e_size);
-    printf("%d\n", header->box_size);
-    printf("%d\n", header->vir_size);
-    printf("%d\n", header->pres_size);
-    printf("%d\n", header->top_size);
-    printf("%d\n", header->sym_size);
-    printf("%d\n", header->x_size);
-    printf("%d\n", header->v_size);
-    printf("%d\n", header->f_size);
-    printf("%d\n", header->natoms);*/
 
     if (setfloatsize(header) == sizeof(double))
     {
