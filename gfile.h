@@ -1,5 +1,5 @@
-#ifndef gfile
-#define gfile
+#ifndef GFILE
+#define GFILE
 
 #include "Gro.h"
 #include "Index.h"

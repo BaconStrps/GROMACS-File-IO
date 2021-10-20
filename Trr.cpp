@@ -9,248 +9,271 @@
 #define readrealarr(file, item)       readxdr(file, &(item), 0, iotype::REALARR)
 #define readstr(file, item)             readxdr(file, &(item), 0, iotype::CHARARR)
 
-Trr::Trr(const char* fn)
+
+namespace gfile
 {
-    first = true;
-    failed = false;
-    file.fp.open(fn, std::ios_base::binary);
-    file.fp.seekg(0, file.fp.end);
-    file.filesize = file.fp.tellg();
-    file.buf = static_cast<char*>(calloc(file.filesize, sizeof(char)));
-    file.pos = file.buf;
 
-    file.fp.seekg(0);
-
-    file.fp.read(file.buf, file.filesize);
-    readheader(&file, &header);
-
-    if (file.Double)
+    Trr::Trr(const char* fn)
     {
-        box.d =    new double[DIM*DIM];
-        x.d =      new double[DIM*static_cast<uint64_t>(header.natoms)];
-        v.d =      new double[DIM*static_cast<uint64_t>(header.natoms)];
-        f.d =      new double[DIM*static_cast<uint64_t>(header.natoms)];
+        first = true;
+        failed = false;
+        file.fp.open(fn, std::ios_base::binary);
+        file.fp.seekg(0, file.fp.end);
+        file.filesize = file.fp.tellg();
+        // TODO: get rid of this allocation. Allocate for each frame instead.
+        file.buf = static_cast<char*>(calloc(file.filesize, sizeof(char)));
+        file.pos = file.buf;
+
+        file.fp.seekg(0);
+
+        file.fp.read(file.buf, file.filesize);
+        readheader(&file, &header);
+
+        if (file.Double)
+        {
+            box.d = new double[DIM * DIM];
+            x.d = new double[DIM * static_cast<uint64_t>(header.natoms)];
+            v.d = new double[DIM * static_cast<uint64_t>(header.natoms)];
+            f.d = new double[DIM * static_cast<uint64_t>(header.natoms)];
+        }
+        else
+        {
+            box.f = new float[DIM * DIM];
+            x.f = new float[DIM * static_cast<long long>(header.natoms)];
+            v.f = new float[DIM * static_cast<long long>(header.natoms)];
+            f.f = new float[DIM * static_cast<long long>(header.natoms)];
+        }
     }
-    else
-    {
-        box.f =    new float[DIM*DIM];
-        x.f =      new float[DIM*static_cast<long long>(header.natoms)];
-        v.f =      new float[DIM*static_cast<long long>(header.natoms)];
-        f.f =      new float[DIM*static_cast<long long>(header.natoms)];
-    }
-}
 
-Trr::~Trr()
-{
-    if (file.Double)
+    Trr::~Trr()
     {
-        delete [] box.d;
-        delete [] x.d;
-        delete [] v.d;
-        delete [] f.d;
-    }
-    else
-    {
-        delete [] box.f;
-        delete [] x.f;
-        delete [] v.f;
-        delete [] f.f;
-    }
-    delete [] file.buf;
+        if (file.Double)
+        {
+            delete[] box.d;
+            delete[] x.d;
+            delete[] v.d;
+            delete[] f.d;
+        }
+        else
+        {
+            delete[] box.f;
+            delete[] x.f;
+            delete[] v.f;
+            delete[] f.f;
+        }
+        delete[] file.buf;
 
-    file.fp.close();
+        file.fp.close();
 
-}
-bool Trr::readFrame()
-{
-    if (!first)
+    }
+    bool Trr::readFrame()
     {
-        if (!readheader(&file, &header) || failed)
+        if (!first)
+        {
+            if (!readheader(&file, &header) || failed)
+            {
+                failed = true;
+                return failed;
+            }
+        }
+
+        // maybe do allocation here?
+
+
+        if (!readframedata(&file, &header, &box, &x, &v, &f))
         {
             failed = true;
             return failed;
         }
-    }
-    if(!readframedata(&file, &header, &box, &x, &v, &f))
-    {
-        failed = true;
+
+        first = false;
+
         return failed;
     }
 
-    first = false;
-
-    return failed;
-}
-
-int Trr::setfloatsize(trr_header* header)
-{
-    int size = 0;
-
-    if (header->box_size)
+    int Trr::setfloatsize(trr_header* header)
     {
-        size = header->box_size / (DIM*DIM);
-    }
-    else if (header->x_size)
-    {
-        size = header->x_size / (header->natoms * DIM);
-    }
-    else if (header->v_size)
-    {
-        size = header->v_size / (header->natoms * DIM);
-    }
-    else if (header->f_size)
-    {
-        size = header->f_size / (header->natoms * DIM);
-    }
-    else
-    {
-        printf("dunno man\n");
-        size = 0;
-    }
+        int size = 0;
 
-    if (size != sizeof(double) && size != sizeof(float))
-    {
-        printf("????: %d\n", size);
-    }
-    return size;
-    
-    
-}
+        if (header->box_size)
+        {
+            size = header->box_size / (DIM * DIM);
+        }
+        else if (header->x_size)
+        {
+            size = header->x_size / (header->natoms * DIM);
+        }
+        else if (header->v_size)
+        {
+            size = header->v_size / (header->natoms * DIM);
+        }
+        else if (header->f_size)
+        {
+            size = header->f_size / (header->natoms * DIM);
+        }
+        else
+        {
+            printf("dunno man\n");
+            size = 0;
+        }
 
-bool Trr::readheader(trr_file* file, trr_header* header)
-{
-    int magic;
-    char buf[256];
-    bool good = true;
+        if (size != sizeof(double) && size != sizeof(float))
+        {
+            printf("????: %d\n", size);
+        }
+        return size;
 
-    if (!readint(file, magic))
-    {
-        failed = true;
-        return false;
-    }
-
-    if (magic != MAGICNUM)
-    {
-        printf("magicnum not found. Are you sure this is a trr file? magicnum: %d\n", magic);
-        failed = true;
-        return false;
-    }
-
-    if (!readstr(file, buf))
-    {
-        printf("strfail\n");
-        return false;
-    }
-
-    good &= readint(file, header->ir_size);
-    good &= readint(file, header->e_size);
-    good &= readint(file, header->box_size);
-    good &= readint(file, header->vir_size);
-    good &= readint(file, header->pres_size);
-    good &= readint(file, header->top_size);
-    good &= readint(file, header->sym_size);
-    good &= readint(file, header->x_size);
-    good &= readint(file, header->v_size);
-    good &= readint(file, header->f_size);
-    good &= readint(file, header->natoms);
-
-    if (setfloatsize(header) == sizeof(double))
-    {
-        file->Double = true;
-    }
-    else
-    {
-        file->Double = false;
-    }
-
-    good &= readint(file, header->step);
-    good &= readint(file, header->nre);
-    good &= readreal(file, header->t);
-    good &= readreal(file, header->lambda);
-
-    return (good != 0);
-}
-
-bool Trr::readframedata(trr_file* file, trr_header* header, real* box, real* x, real* v, real* f)
-{
-    bool good = true;
-    real arr;
-    if (file->Double)
-    {
-        arr.d = new double[DIM*DIM];
-    }
-    else 
-    {
-        arr.f = new float[DIM*DIM];
 
     }
 
-
-    if (header->box_size != 0)
+    bool Trr::readheader(trr_file* file, trr_header* header)
     {
-       // printf("%p\n", box);
-        good &= readrvec(file, box, DIM);
+        int magic;
+        char buf[256];
+        bool good = true;
+
+        if (!readint(file, magic))
+        {
+            failed = true;
+            return false;
+        }
+
+        if (magic != MAGICNUM)
+        {
+            printf("magicnum not found. Are you sure this is a trr file? magicnum: %d\n", magic);
+            failed = true;
+            return false;
+        }
+
+        if (!readstr(file, buf))
+        {
+            printf("strfail\n");
+            return false;
+        }
+
+        good &= readint(file, header->ir_size);
+        good &= readint(file, header->e_size);
+        good &= readint(file, header->box_size);
+        good &= readint(file, header->vir_size);
+        good &= readint(file, header->pres_size);
+        good &= readint(file, header->top_size);
+        good &= readint(file, header->sym_size);
+        good &= readint(file, header->x_size);
+        good &= readint(file, header->v_size);
+        good &= readint(file, header->f_size);
+        good &= readint(file, header->natoms);
+
+        if (setfloatsize(header) == sizeof(double))
+        {
+            file->Double = true;
+        }
+        else
+        {
+            file->Double = false;
+        }
+
+        good &= readint(file, header->step);
+        good &= readint(file, header->nre);
+
+        if (file->Double)
+        {
+            good &= readreal(file, header->t);
+            good &= readreal(file, header->lambda);
+        }
+        else
+        {
+            float t, lambda;
+            good &= readreal(file, t);
+            good &= readreal(file, lambda);
+
+            header->t = t;
+            header->lambda = lambda;
+        }
+
+        return (good != 0);
     }
- 
-    if (header->vir_size != 0)
+
+    bool Trr::readframedata(trr_file* file, trr_header* header, real* box, real* x, real* v, real* f)
     {
-        good &= readrvec(file, &arr, DIM);
+        bool good = true;
+        real arr;
+        if (file->Double)
+        {
+            arr.d = new double[DIM * DIM];
+        }
+        else
+        {
+            arr.f = new float[DIM * DIM];
+
+        }
+
+
+        if (header->box_size != 0)
+        {
+            // printf("%p\n", box);
+            good &= readrvec(file, box, DIM);
+        }
+
+        if (header->vir_size != 0)
+        {
+            good &= readrvec(file, &arr, DIM);
+        }
+        if (header->pres_size != 0)
+        {
+            good &= readrvec(file, &arr, DIM);
+        }
+
+        if (header->x_size != 0)
+        {
+            good &= readrvec(file, x, header->natoms);
+        }
+
+        if (header->v_size != 0)
+        {
+            good &= readrvec(file, v, header->natoms);
+        }
+
+        if (header->f_size != 0)
+        {
+            good &= readrvec(file, f, header->natoms);
+        }
+
+        if (file->Double)
+        {
+            delete[] arr.d;
+        }
+        else
+        {
+            delete[] arr.f;
+        }
+
+
+        return (good != 0);
     }
-    if (header->pres_size != 0)
+
+    bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
     {
-        good &= readrvec(file, &arr, DIM);
-    }
-    
-    if (header->x_size != 0)
-    { 
-       good &= readrvec(file, x, header->natoms);
-    }
+        bool good = true;
 
-    if (header->v_size != 0)
-    {
-        good &= readrvec(file, v, header->natoms);
-    }
-    
-    if (header->f_size != 0)
-    {
-        good &= readrvec(file, f, header->natoms);
-    }
+        char* cptr = nullptr;
+        float           f, * fptr = nullptr;
+        float           farr[DIM];
+        double          darr[DIM];
+        double          d, * dptr = nullptr;
+        int             i;
 
-    if (file->Double)
-    {
-        delete [] arr.d;
-    }
-    else
-    {
-        delete [] arr.f;
-    }
+        if (file->pos >= file->buf + file->filesize)
+        {
+            return false;
+        }
 
 
-    return (good != 0);
-}
-
-bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
-{
-    bool good = true;
-
-    char            *cptr = nullptr;
-    float           f, *fptr = nullptr;
-    float           farr[DIM];
-    double          darr[DIM];
-    double          d, *dptr = nullptr;
-    int             i;
-
-    if (file->pos >= file->buf + file->filesize)
-    {
-        return false;
-    }
-
-
-    switch (type)
-    {
-    case iotype::REAL:
+        switch (type)
+        {
+        case iotype::REAL:
             if (file->Double)
-            {   if (file->Write)
+            {
+                if (file->Write)
                 {
                     d = *static_cast<double*>(item);
                 }
@@ -273,7 +296,7 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
                 }
             }
             break;
-    case iotype::INT:
+        case iotype::INT:
             if (file->Write)
             {
                 i = *static_cast<int*>(item);
@@ -284,7 +307,7 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
                 *static_cast<int*>(item) = i;
             }
             break;
-    case iotype::REALARR:
+        case iotype::REALARR:
             if (file->Double)
             {
                 if (item && file->Write)
@@ -295,7 +318,7 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
                         darr[i] = (static_cast<double*>(item))[i];
                     }
                 }
-                
+
 
                 good = xdr_vector(&file->pos, reinterpret_cast<char*>(darr), DIM, static_cast<unsigned int>(sizeof(double)), &xdr_double);
 
@@ -327,7 +350,7 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
                 }
             }
             break;
-    case iotype::CHARARR:
+        case iotype::CHARARR:
             size_t slen;
             if (file->Write && item)
             {
@@ -345,7 +368,7 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
             }
             if (!item && file->Read)
             {
-                
+
                 cptr = static_cast<char*>(calloc(slen, sizeof(char)));
             }
             else
@@ -364,19 +387,22 @@ bool Trr::readxdr(trr_file* file, void* item, size_t arrsize, iotype type)
             }
             break;
 
-    case iotype::RVECARR:
+        case iotype::RVECARR:
             if (file->Double)
             {
                 dptr = *static_cast<double**>(item);
-                good = xdr_vector(&file->pos, reinterpret_cast<char*>(dptr), sizeof(double), arrsize*DIM, &xdr_double);
+                good = xdr_vector(&file->pos, reinterpret_cast<char*>(dptr), sizeof(double), arrsize * DIM, &xdr_double);
             }
             else
             {
                 fptr = *static_cast<float**>(item);
-                good = xdr_vector(&file->pos, reinterpret_cast<char*>(fptr), sizeof(float), arrsize*DIM, &xdr_float);
+                good = xdr_vector(&file->pos, reinterpret_cast<char*>(fptr), sizeof(float), arrsize * DIM, &xdr_float);
             }
             break;
+        }
+
+        return (good != 0);
     }
 
-    return (good != 0);
+
 }
